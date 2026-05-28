@@ -9,6 +9,7 @@ from market_anomaly.notifier import TelegramNotifier, format_alerts_for_telegram
 def _alert() -> Alert:
     return Alert(
         symbol="BTCUSDT",
+        asset_name="Bitcoin / Tether",
         market_class=MarketClass.CRYPTO,
         timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc),
         price=100_000,
@@ -27,9 +28,10 @@ def _alert() -> Alert:
 def test_format_alerts_for_telegram_is_short_clear_and_secret_free() -> None:
     message = format_alerts_for_telegram([_alert()])
 
-    assert "<b>Market anomaly alerts</b>" in message
+    assert "<b>Anomaly uyarilari</b>" in message
+    assert "Bitcoin / Tether" in message
     assert "BTCUSDT" in message
-    assert "score 3.20" in message
+    assert "skor 3.20" in message
     assert "100000" not in message
     assert "token" not in message.lower()
 

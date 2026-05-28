@@ -82,6 +82,10 @@ Added human-readable asset names so coded Yahoo/Binance symbols render as labels
 
 Initialized git, created/pushed GitHub repo `pand40x/adaptive-market-anomaly-monitor`, and made it public so Dokploy can build from the GitHub context. Created a Dokploy raw Docker Compose service in the existing `anomaly-detector` production environment. Initial deploy failed because the compose source type was missing; updating the compose to `sourceType=raw` fixed it. Final Dokploy deployment status is `done`, compose status is `done`, and both `market-watch` and `mongo` containers are running. Do not print Dokploy API responses that include raw compose content because they may include environment secrets.
 
+### 2026-05-28 19. Telegram Message Simulation
+
+User asked to simulate how Telegram messages will look. Generated a preview from the latest Mongo alerts without sending anything. Updated Telegram formatting to use normalized asset names and Turkish labels, e.g. `Bitcoin / Tether` plus ticker in code formatting, market label, direction, and score.
+
 ### 2026-05-28 11. Secret Handling and Telegram Alerts
 
 User provided Dokploy and Telegram credentials in chat. Do not repeat or store the raw secret values in memory. Added Telegram notifier support through `.env.local` variables, including `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DOKPLOY_API_KEY`, and optional `DOKPLOY_API_URL`. Scan now sends a short Telegram summary when both token and chat id are configured. Added a `telegram-chat-ids` helper command for discovering chat ids after the user messages the bot.

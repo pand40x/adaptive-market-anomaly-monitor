@@ -7,6 +7,7 @@ from pathlib import Path
 import requests
 
 from .models import Alert
+from .assets import display_name_for, market_label_for
 
 
 def load_local_env(path: Path = Path(".env.local")) -> None:
@@ -31,18 +32,20 @@ def telegram_from_env() -> "TelegramNotifier":
 
 def format_alerts_for_telegram(alerts: list[Alert], limit: int = 8) -> str:
     shown = alerts[-limit:]
-    lines = ["<b>Market anomaly alerts</b>"]
+    lines = ["<b>Anomaly uyarilari</b>"]
     for alert in shown:
-        direction = "up" if alert.direction == "up" else "down"
+        direction = "yukari" if alert.direction == "up" else "asagi"
+        asset_name = html.escape(alert.asset_name or display_name_for(alert.symbol))
         symbol = html.escape(alert.symbol)
-        market = html.escape(alert.market_class.value)
+        market = html.escape(market_label_for(alert.market_class))
         explanation = html.escape(alert.explanation)
         lines.append(
-            f"<b>{symbol}</b> ({market}) {direction}, score {alert.score:.2f}\n"
+            f"<b>{asset_name}</b> <code>{symbol}</code>\n"
+            f"{market} | yon: {direction} | skor {alert.score:.2f}\n"
             f"{explanation}"
         )
     if len(alerts) > limit:
-        lines.append(f"{len(alerts) - limit} older alerts omitted.")
+        lines.append(f"{len(alerts) - limit} eski alarm gizlendi.")
     message = "\n\n".join(lines)
     return message[:4000]
 
