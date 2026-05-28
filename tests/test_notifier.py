@@ -28,10 +28,14 @@ def _alert() -> Alert:
 def test_format_alerts_for_telegram_is_short_clear_and_secret_free() -> None:
     message = format_alerts_for_telegram([_alert()])
 
-    assert "<b>Anomaly uyarilari</b>" in message
+    assert "<b>Anomali Uyarıları</b>" in message
     assert "Bitcoin / Tether" in message
     assert "BTCUSDT" in message
-    assert "skor 3.20" in message
+    assert "Yön: Yukarı" in message
+    assert "Neden:" in message
+    assert "Takip:" in message
+    assert "price deviation" not in message.lower()
+    assert "volatility breakout" not in message.lower()
     assert "100000" not in message
     assert "token" not in message.lower()
 

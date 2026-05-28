@@ -32,22 +32,41 @@ def telegram_from_env() -> "TelegramNotifier":
 
 def format_alerts_for_telegram(alerts: list[Alert], limit: int = 8) -> str:
     shown = alerts[-limit:]
-    lines = ["<b>Anomaly uyarilari</b>"]
+    lines = ["<b>Anomali Uyarıları</b>"]
     for alert in shown:
-        direction = "yukari" if alert.direction == "up" else "asagi"
+        direction = "Yukarı" if alert.direction == "up" else "Aşağı"
         asset_name = html.escape(alert.asset_name or display_name_for(alert.symbol))
         symbol = html.escape(alert.symbol)
         market = html.escape(market_label_for(alert.market_class))
-        explanation = html.escape(alert.explanation)
+        reason = html.escape(_plain_reason(alert))
         lines.append(
             f"<b>{asset_name}</b> <code>{symbol}</code>\n"
-            f"{market} | yon: {direction} | skor {alert.score:.2f}\n"
-            f"{explanation}"
+            f"Piyasa: {market}\n"
+            f"Yön: {direction}\n"
+            f"Neden: {reason}\n"
+            f"Takip: Sonraki hareket izleniyor."
         )
     if len(alerts) > limit:
         lines.append(f"{len(alerts) - limit} eski alarm gizlendi.")
     message = "\n\n".join(lines)
     return message[:4000]
+
+
+def _plain_reason(alert: Alert) -> str:
+    parts = []
+    if alert.breakdown.price_deviation >= 3:
+        parts.append("fiyat normalden belirgin saptı")
+    if alert.breakdown.volume_expansion >= 2:
+        parts.append("hacim olağanın üstüne çıktı")
+    if alert.breakdown.short_move >= 2:
+        parts.append("kısa vadeli hareket güçlendi")
+    if alert.breakdown.volatility_breakout >= 2:
+        parts.append("oynaklık arttı")
+    if not parts:
+        return "birkaç sinyal birlikte olağan dışı göründü"
+    if len(parts) == 1:
+        return parts[0]
+    return ", ".join(parts[:-1]) + " ve " + parts[-1]
 
 
 class TelegramNotifier:
