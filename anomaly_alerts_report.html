@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anomaly Alert Koşulları</title>
+<style>
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #17202a;
+  --muted: #667085;
+  --line: #d8dee8;
+  --head: #eef2f6;
+  --green: #0d7a4f;
+  --red: #b42318;
+  --blue: #175cd3;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+header { padding: 28px 32px 12px; }
+h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0; }
+p { margin: 0; color: var(--muted); max-width: 980px; }
+.cards { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 12px; padding: 16px 32px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.card-label { color: var(--muted); font-size: 12px; }
+.card-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.layout { display: grid; grid-template-columns: 260px 1fr; gap: 16px; padding: 0 32px 32px; }
+.side, .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.side h2, .table-title { margin: 0; padding: 14px 16px; font-size: 15px; border-bottom: 1px solid var(--line); background: var(--head); }
+.side table { width: 100%; border-collapse: collapse; }
+.side td { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.scroll { overflow: auto; max-height: 72vh; }
+table.alerts { border-collapse: separate; border-spacing: 0; min-width: 1780px; width: 100%; }
+th, td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); vertical-align: top; }
+th { position: sticky; top: 0; z-index: 5; background: var(--head); color: #344054; font-size: 12px; text-align: left; padding: 10px; white-space: nowrap; }
+td { padding: 10px; background: #fff; }
+tr:hover td { background: #fbfcff; }
+.sticky { position: sticky; left: 0; z-index: 3; box-shadow: 1px 0 0 var(--line); }
+.sticky2 { position: sticky; left: 150px; z-index: 3; box-shadow: 1px 0 0 var(--line); }
+th.sticky { z-index: 7; }
+th.sticky2 { z-index: 7; }
+.time { min-width: 150px; width: 150px; }
+.symbol { min-width: 110px; width: 110px; font-weight: 700; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.strong { font-weight: 800; }
+.condition { min-width: 210px; }
+.condition span { color: var(--muted); }
+.drivers { min-width: 260px; }
+.driver-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.weights { min-width: 230px; color: #344054; }
+.explain { min-width: 360px; color: #344054; }
+.badge { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border-radius: 999px; background: #eef2f6; color: #344054; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.badge.up { background: #dcfae6; color: var(--green); }
+.badge.down { background: #fee4e2; color: var(--red); }
+.badge.driver { background: #e0ecff; color: var(--blue); }
+@media (max-width: 900px) {
+  .cards { grid-template-columns: repeat(2, 1fr); padding: 12px 16px; }
+  .layout { grid-template-columns: 1fr; padding: 0 16px 24px; }
+  header { padding: 22px 16px 10px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Anomaly Alert Koşulları</h1>
+  <p>Her satır, geçmiş veride tetiklenen bir alarmı ve alarmı doğuran koşulları gösterir. Skor eşiği aşılırsa alarm oluşur; takip koşulu ise alarmın sonradan anlamlı sayılması için beklenen hareketi gösterir.</p>
+</header>
+<section class="cards"><div class="card"><div class="card-label">Toplam alarm</div><div class="card-value">45</div></div><div class="card"><div class="card-label">Varlık sayısı</div><div class="card-value">7</div></div><div class="card"><div class="card-label">En çok alarm</div><div class="card-value">ETHUSDT (20)</div></div><div class="card"><div class="card-label">Sınıf sayısı</div><div class="card-value">5</div></div></section>
+<main class="layout">
+  <aside class="side">
+    <h2>Varlık Bazında Alarm</h2>
+    <table><tr><td>ETHUSDT</td><td>20</td></tr><tr><td>BTCUSDT</td><td>15</td></tr><tr><td>GC=F</td><td>2</td></tr><tr><td>MSFT</td><td>2</td></tr><tr><td>EURUSD=X</td><td>2</td></tr><tr><td>AAPL</td><td>2</td></tr><tr><td>^GSPC</td><td>2</td></tr></table>
+  </aside>
+  <section class="table-wrap">
+    <h2 class="table-title">Geniş Alarm Tablosu</h2>
+    <div class="scroll">
+      <table class="alerts">
+        <thead>
+          <tr>
+            <th class="sticky time">Zaman</th>
+            <th class="sticky2 symbol">Varlık</th>
+            <th>Sınıf</th>
+            <th>Yön</th>
+            <th>Skor</th>
+            <th>Eşik</th>
+            <th>Alarm / Takip Koşulu</th>
+            <th>Fiyat Sapması</th>
+            <th>Hacim</th>
+            <th>Volatilite</th>
+            <th>Kısa Hareket</th>
+            <th>Tetikleyen Koşullar</th>
+            <th>Ağırlıklar</th>
+            <th>Açıklama</th>
+          </tr>
+        </thead>
+        <tbody>
+<tr>
+  <td class="sticky time">2026-05-23 20:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.15</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.1x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.6x</td>
+  <td class="num">2.7x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 4.15, driven by price deviation 5.1x, volume expansion 8.0x, volatility breakout 1.6x, short-term move 2.7x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2026-04-27 05:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.24</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.8x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.2x</td>
+  <td class="num">1.3x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 4.24, driven by price deviation 5.8x, volume expansion 8.0x, volatility breakout 2.2x, short-term move 1.3x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2026-04-13 22:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.30</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.7x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.7x</td>
+  <td class="num">3.8x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 4.30, driven by price deviation 4.7x, volume expansion 8.0x, volatility breakout 1.7x, short-term move 3.8x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2026-02-23 01:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.57</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.8x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">3.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual downward move. Combined anomaly score is 4.57, driven by price deviation 5.8x, volume expansion 8.0x, volatility breakout 2.1x, short-term move 3.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2026-02-23 01:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.56</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.8x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">3.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 4.56, driven by price deviation 5.8x, volume expansion 8.0x, volatility breakout 2.1x, short-term move 3.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2026-01-30 00:00 UTC</td>
+  <td class="sticky2 symbol">GC=F</td>
+  <td><span class="badge ">commodity</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.82</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.4x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">2.6x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.35, Hacim 0.25, Volatilite 0.20, Hareket 0.20</td>
+  <td class="explain">GC=F shows an unusual downward move. Combined anomaly score is 4.82, driven by price deviation 5.4x, volume expansion 8.0x, volatility breakout 2.1x, short-term move 2.6x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2026-01-29 00:00 UTC</td>
+  <td class="sticky2 symbol">MSFT</td>
+  <td><span class="badge ">stock</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">3.50</td>
+  <td class="num">3.2</td>
+  <td class="condition">Skor >= 3.2<br><span>10 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.1x</td>
+  <td class="num">5.2x</td>
+  <td class="num">2.0x</td>
+  <td class="num">1.6x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">MSFT shows an unusual downward move. Combined anomaly score is 3.50, driven by price deviation 5.1x, volume expansion 5.2x, volatility breakout 2.0x, short-term move 1.6x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2026-01-28 00:00 UTC</td>
+  <td class="sticky2 symbol">GC=F</td>
+  <td><span class="badge ">commodity</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.73</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">2.8x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.2x</td>
+  <td class="num">7.6x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.35, Hacim 0.25, Volatilite 0.20, Hareket 0.20</td>
+  <td class="explain">GC=F shows an unusual upward move. Combined anomaly score is 4.73, driven by price deviation 2.8x, volume expansion 8.0x, volatility breakout 1.2x, short-term move 7.6x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2026-01-13 22:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.43</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.5x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.9x</td>
+  <td class="num">3.2x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 4.43, driven by price deviation 5.5x, volume expansion 8.0x, volatility breakout 1.9x, short-term move 3.2x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-12-26 02:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.04</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.4x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">1.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual upward move. Combined anomaly score is 4.04, driven by price deviation 5.4x, volume expansion 8.0x, volatility breakout 2.1x, short-term move 1.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-12-12 15:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.18</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.2x</td>
+  <td class="num">6.7x</td>
+  <td class="num">1.8x</td>
+  <td class="num">3.7x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 4.18, driven by price deviation 5.2x, volume expansion 6.7x, volatility breakout 1.8x, short-term move 3.7x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-12-09 16:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.24</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">3.4x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.7x</td>
+  <td class="num">5.5x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 4.24, driven by price deviation 3.4x, volume expansion 8.0x, volatility breakout 1.7x, short-term move 5.5x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-12-01 00:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.71</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">6.2x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.0x</td>
+  <td class="num">3.3x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual downward move. Combined anomaly score is 4.71, driven by price deviation 6.2x, volume expansion 8.0x, volatility breakout 2.0x, short-term move 3.3x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-12-01 00:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.87</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">6.0x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.0x</td>
+  <td class="num">4.4x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 4.87, driven by price deviation 6.0x, volume expansion 8.0x, volatility breakout 2.0x, short-term move 4.4x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-10-01 08:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.00</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.9x</td>
+  <td class="num">7.9x</td>
+  <td class="num">1.7x</td>
+  <td class="num">2.2x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 4.00, driven by price deviation 4.9x, volume expansion 7.9x, volatility breakout 1.7x, short-term move 2.2x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-09-22 00:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.49</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">6.0x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.0x</td>
+  <td class="num">2.4x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 4.49, driven by price deviation 6.0x, volume expansion 8.0x, volatility breakout 2.0x, short-term move 2.4x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-08-22 14:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.92</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">6.0x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">4.4x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 4.92, driven by price deviation 6.0x, volume expansion 8.0x, volatility breakout 2.1x, short-term move 4.4x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-06-05 20:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.72</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.3x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.8x</td>
+  <td class="num">4.9x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 4.72, driven by price deviation 5.3x, volume expansion 8.0x, volatility breakout 1.8x, short-term move 4.9x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-05-01 00:00 UTC</td>
+  <td class="sticky2 symbol">MSFT</td>
+  <td><span class="badge ">stock</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">3.32</td>
+  <td class="num">3.2</td>
+  <td class="condition">Skor >= 3.2<br><span>10 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">3.0x</td>
+  <td class="num">2.7x</td>
+  <td class="num">0.9x</td>
+  <td class="num">8.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">MSFT shows an unusual upward move. Combined anomaly score is 3.32, driven by price deviation 3.0x, volume expansion 2.7x, volatility breakout 0.9x, short-term move 8.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-04-11 00:00 UTC</td>
+  <td class="sticky2 symbol">EURUSD=X</td>
+  <td><span class="badge ">forex</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">2.14</td>
+  <td class="num">1.8</td>
+  <td class="condition">Skor >= 1.8<br><span>5 bar içinde en az %1.0 hareket beklenir</span></td>
+  <td class="num">3.9x</td>
+  <td class="num">0.0x</td>
+  <td class="num">1.6x</td>
+  <td class="num">2.1x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.35, Hacim 0.25, Volatilite 0.20, Hareket 0.20</td>
+  <td class="explain">EURUSD=X shows an unusual upward move. Combined anomaly score is 2.14, driven by price deviation 3.9x, volume expansion 0.0x, volatility breakout 1.6x, short-term move 2.1x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-04-09 17:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.55</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.6x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.7x</td>
+  <td class="num">5.2x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual upward move. Combined anomaly score is 4.55, driven by price deviation 4.6x, volume expansion 8.0x, volatility breakout 1.7x, short-term move 5.2x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-04-09 17:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">5.25</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.1x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.8x</td>
+  <td class="num">8.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 5.25, driven by price deviation 5.1x, volume expansion 8.0x, volatility breakout 1.8x, short-term move 8.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-04-09 00:00 UTC</td>
+  <td class="sticky2 symbol">AAPL</td>
+  <td><span class="badge ">stock</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.27</td>
+  <td class="num">3.2</td>
+  <td class="condition">Skor >= 3.2<br><span>10 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.7x</td>
+  <td class="num">3.8x</td>
+  <td class="num">2.1x</td>
+  <td class="num">7.3x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">AAPL shows an unusual upward move. Combined anomaly score is 4.27, driven by price deviation 4.7x, volume expansion 3.8x, volatility breakout 2.1x, short-term move 7.3x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-04-09 00:00 UTC</td>
+  <td class="sticky2 symbol">^GSPC</td>
+  <td><span class="badge ">index</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">3.28</td>
+  <td class="num">3.2</td>
+  <td class="condition">Skor >= 3.2<br><span>10 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.8x</td>
+  <td class="num">2.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">2.1x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.45, Hacim 0.20, Volatilite 0.20, Hareket 0.15</td>
+  <td class="explain">^GSPC shows an unusual upward move. Combined anomaly score is 3.28, driven by price deviation 4.8x, volume expansion 2.0x, volatility breakout 2.1x, short-term move 2.1x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-04-06 18:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.11</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.6x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.8x</td>
+  <td class="num">2.9x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual downward move. Combined anomaly score is 4.11, driven by price deviation 4.6x, volume expansion 8.0x, volatility breakout 1.8x, short-term move 2.9x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-04-04 00:00 UTC</td>
+  <td class="sticky2 symbol">AAPL</td>
+  <td><span class="badge ">stock</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">3.48</td>
+  <td class="num">3.2</td>
+  <td class="condition">Skor >= 3.2<br><span>10 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">2.9x</td>
+  <td class="num">2.6x</td>
+  <td class="num">1.6x</td>
+  <td class="num">8.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">AAPL shows an unusual downward move. Combined anomaly score is 3.48, driven by price deviation 2.9x, volume expansion 2.6x, volatility breakout 1.6x, short-term move 8.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-04-04 00:00 UTC</td>
+  <td class="sticky2 symbol">^GSPC</td>
+  <td><span class="badge ">index</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">3.51</td>
+  <td class="num">3.2</td>
+  <td class="condition">Skor >= 3.2<br><span>10 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">3.8x</td>
+  <td class="num">1.8x</td>
+  <td class="num">1.6x</td>
+  <td class="num">7.3x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.45, Hacim 0.20, Volatilite 0.20, Hareket 0.15</td>
+  <td class="explain">^GSPC shows an unusual downward move. Combined anomaly score is 3.51, driven by price deviation 3.8x, volume expansion 1.8x, volatility breakout 1.6x, short-term move 7.3x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-03-10 18:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.75</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">3.5x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.7x</td>
+  <td class="num">8.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 4.75, driven by price deviation 3.5x, volume expansion 8.0x, volatility breakout 1.7x, short-term move 8.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-03-02 16:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.47</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.9x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.0x</td>
+  <td class="num">4.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual upward move. Combined anomaly score is 4.47, driven by price deviation 4.9x, volume expansion 8.0x, volatility breakout 2.0x, short-term move 4.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-03-02 16:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">5.23</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">6.1x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">5.8x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 5.23, driven by price deviation 6.1x, volume expansion 8.0x, volatility breakout 2.1x, short-term move 5.8x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-02-24 22:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.04</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.2x</td>
+  <td class="num">5.9x</td>
+  <td class="num">1.8x</td>
+  <td class="num">3.8x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 4.04, driven by price deviation 5.2x, volume expansion 5.9x, volatility breakout 1.8x, short-term move 3.8x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-02-03 03:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.19</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">1.2x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">8.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 4.19, driven by price deviation 1.2x, volume expansion 8.0x, volatility breakout 2.1x, short-term move 8.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-02-03 01:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.15</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.4x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.9x</td>
+  <td class="num">3.3x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual downward move. Combined anomaly score is 4.15, driven by price deviation 4.4x, volume expansion 8.0x, volatility breakout 1.9x, short-term move 3.3x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-02-03 01:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">5.70</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">6.2x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">8.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 5.70, driven by price deviation 6.2x, volume expansion 8.0x, volatility breakout 2.1x, short-term move 8.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2025-01-20 06:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.71</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.9x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.0x</td>
+  <td class="num">5.1x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual upward move. Combined anomaly score is 4.71, driven by price deviation 4.9x, volume expansion 8.0x, volatility breakout 2.0x, short-term move 5.1x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2024-11-21 12:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.34</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.1x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.8x</td>
+  <td class="num">3.4x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual upward move. Combined anomaly score is 4.34, driven by price deviation 5.1x, volume expansion 8.0x, volatility breakout 1.8x, short-term move 3.4x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2024-11-07 00:00 UTC</td>
+  <td class="sticky2 symbol">EURUSD=X</td>
+  <td><span class="badge ">forex</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">1.98</td>
+  <td class="num">1.8</td>
+  <td class="condition">Skor >= 1.8<br><span>5 bar içinde en az %1.0 hareket beklenir</span></td>
+  <td class="num">4.4x</td>
+  <td class="num">0.0x</td>
+  <td class="num">1.7x</td>
+  <td class="num">0.5x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span></div></td>
+  <td class="weights">Fiyat 0.35, Hacim 0.25, Volatilite 0.20, Hareket 0.20</td>
+  <td class="explain">EURUSD=X shows an unusual downward move. Combined anomaly score is 1.98, driven by price deviation 4.4x, volume expansion 0.0x, volatility breakout 1.7x, short-term move 0.5x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2024-08-27 21:00 UTC</td>
+  <td class="sticky2 symbol">ETHUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.11</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.3x</td>
+  <td class="num">7.4x</td>
+  <td class="num">1.9x</td>
+  <td class="num">2.3x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">ETHUSDT shows an unusual downward move. Combined anomaly score is 4.11, driven by price deviation 5.3x, volume expansion 7.4x, volatility breakout 1.9x, short-term move 2.3x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2024-04-13 20:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.57</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">4.3x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.8x</td>
+  <td class="num">5.7x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual downward move. Combined anomaly score is 4.57, driven by price deviation 4.3x, volume expansion 8.0x, volatility breakout 1.8x, short-term move 5.7x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2024-02-26 15:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.28</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.3x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.0x</td>
+  <td class="num">2.5x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual upward move. Combined anomaly score is 4.28, driven by price deviation 5.3x, volume expansion 8.0x, volatility breakout 2.0x, short-term move 2.5x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2023-12-11 02:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.56</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.8x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.0x</td>
+  <td class="num">3.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual downward move. Combined anomaly score is 4.56, driven by price deviation 5.8x, volume expansion 8.0x, volatility breakout 2.0x, short-term move 3.0x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2023-10-23 22:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">4.87</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.9x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.0x</td>
+  <td class="num">4.5x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual upward move. Combined anomaly score is 4.87, driven by price deviation 5.9x, volume expansion 8.0x, volatility breakout 2.0x, short-term move 4.5x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2023-09-11 14:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.19</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">5.6x</td>
+  <td class="num">8.0x</td>
+  <td class="num">1.9x</td>
+  <td class="num">1.7x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual downward move. Combined anomaly score is 4.19, driven by price deviation 5.6x, volume expansion 8.0x, volatility breakout 1.9x, short-term move 1.7x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2023-08-29 14:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge up">Yukarı</span></td>
+  <td class="num strong">5.07</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">6.7x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.3x</td>
+  <td class="num">3.9x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual upward move. Combined anomaly score is 5.07, driven by price deviation 6.7x, volume expansion 8.0x, volatility breakout 2.3x, short-term move 3.9x.</td>
+</tr>
+<tr>
+  <td class="sticky time">2023-08-17 21:00 UTC</td>
+  <td class="sticky2 symbol">BTCUSDT</td>
+  <td><span class="badge ">crypto</span></td>
+  <td><span class="badge down">Aşağı</span></td>
+  <td class="num strong">4.94</td>
+  <td class="num">4.0</td>
+  <td class="condition">Skor >= 4.0<br><span>12 bar içinde en az %3.0 hareket beklenir</span></td>
+  <td class="num">6.3x</td>
+  <td class="num">8.0x</td>
+  <td class="num">2.1x</td>
+  <td class="num">4.0x</td>
+  <td class="drivers"><div class="driver-list"><span class="badge driver">Fiyat sapması yüksek</span><span class="badge driver">Hacim olağan dışı</span><span class="badge driver">Volatilite kırıldı</span><span class="badge driver">Kısa dönem hareket güçlü</span></div></td>
+  <td class="weights">Fiyat 0.30, Hacim 0.20, Volatilite 0.30, Hareket 0.20</td>
+  <td class="explain">BTCUSDT shows an unusual downward move. Combined anomaly score is 4.94, driven by price deviation 6.3x, volume expansion 8.0x, volatility breakout 2.1x, short-term move 4.0x.</td>
+</tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

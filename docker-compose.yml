@@ -1,0 +1,29 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - market-watch-mongo:/data/db
+
+  market-watch:
+    build: .
+    depends_on:
+      - mongo
+    env_file:
+      - .env.local
+    environment:
+      MONGO_URI: mongodb://mongo:27017/market_anomaly
+      MONGO_DATABASE: market_anomaly
+    command:
+      - worker
+      - --years
+      - "3"
+      - --cycle-minutes
+      - "60"
+      - --optimize-every-cycles
+      - "24"
+
+volumes:
+  market-watch-mongo:
