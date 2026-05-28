@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import pandas as pd
 
-from market_anomaly.models import MarketClass, SignalWeights, Thresholds
-from market_anomaly.signals import detect_anomalies
+from datetime import datetime, timezone
+
+from market_anomaly.models import Alert, MarketClass, SignalBreakdown, SignalWeights, Thresholds
+from market_anomaly.signals import _dedupe_adjacent_alerts, detect_anomalies
 
 
 def _sample_candles() -> pd.DataFrame:
@@ -38,10 +40,10 @@ def test_detect_anomalies_combines_price_volume_volatility_and_short_move() -> N
     assert alert.symbol == "BTCUSDT"
     assert alert.market_class is MarketClass.CRYPTO
     assert alert.score >= 2.0
-    assert "price deviation" in alert.explanation.lower()
-    assert "volume" in alert.explanation.lower()
-    assert "volatility" in alert.explanation.lower()
-    assert "short-term move" in alert.explanation.lower()
+    assert "fiyat" in alert.explanation.lower()
+    assert "hacim" in alert.explanation.lower()
+    assert "oynaklık" in alert.explanation.lower()
+    assert "kısa vadeli" in alert.explanation.lower()
 
 
 def test_detect_anomalies_stays_quiet_when_score_is_below_threshold() -> None:
@@ -67,3 +69,42 @@ def test_detect_anomalies_skips_alerts_outside_natural_market_time() -> None:
     )
 
     assert alerts == []
+
+
+def test_dedupe_keeps_same_direction_alert_after_follow_window_passes() -> None:
+    first = Alert(
+        symbol="BTCUSDT",
+        market_class=MarketClass.CRYPTO,
+        timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        price=100,
+        score=3.0,
+        direction="up",
+        breakdown=SignalBreakdown(
+            price_deviation=3,
+            volume_expansion=2,
+            volatility_breakout=1,
+            short_move=2,
+        ),
+        explanation="first",
+    )
+    stronger_nearby = first.model_copy(
+        update={
+            "timestamp": datetime(2026, 1, 1, 1, tzinfo=timezone.utc),
+            "score": 4.0,
+            "explanation": "nearby",
+        }
+    )
+    later = first.model_copy(
+        update={
+            "timestamp": datetime(2026, 1, 2, tzinfo=timezone.utc),
+            "score": 3.5,
+            "explanation": "later",
+        }
+    )
+
+    alerts = _dedupe_adjacent_alerts(
+        [(10, first), (11, stronger_nearby), (40, later)],
+        max_bar_gap=6,
+    )
+
+    assert [alert.explanation for alert in alerts] == ["nearby", "later"]

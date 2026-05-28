@@ -26,8 +26,8 @@ def detect_anomalies(
         return []
 
     scored = score_candles(frame, weights)
-    alerts: list[Alert] = []
-    for timestamp, row in scored.iterrows():
+    candidates: list[tuple[int, Alert]] = []
+    for bar_index, (timestamp, row) in enumerate(scored.iterrows()):
         if not is_natural_market_time(market_class, timestamp, cadence=cadence):
             continue
         score = float(row["score"])
@@ -41,20 +41,23 @@ def detect_anomalies(
             volatility_breakout=float(row["volatility_breakout"]),
             short_move=float(row["short_move"]),
         )
-        alerts.append(
-            Alert(
-                symbol=symbol,
-                asset_name=asset_name,
-                market_class=market_class,
-                timestamp=timestamp.to_pydatetime(),
-                price=float(row["close"]),
-                score=round(score, 4),
-                direction=direction,
-                breakdown=breakdown,
-                explanation=explain_alert(symbol, direction, score, breakdown),
+        candidates.append(
+            (
+                bar_index,
+                Alert(
+                    symbol=symbol,
+                    asset_name=asset_name,
+                    market_class=market_class,
+                    timestamp=timestamp.to_pydatetime(),
+                    price=float(row["close"]),
+                    score=round(score, 4),
+                    direction=direction,
+                    breakdown=breakdown,
+                    explanation=explain_alert(symbol, direction, score, breakdown),
+                ),
             )
         )
-    return _dedupe_adjacent_alerts(alerts)
+    return _dedupe_adjacent_alerts(candidates, max_bar_gap=thresholds.lookahead_bars)
 
 
 def score_candles(candles: pd.DataFrame, weights: SignalWeights) -> pd.DataFrame:
@@ -96,17 +99,21 @@ def explain_alert(
     score: float,
     breakdown: SignalBreakdown,
 ) -> str:
-    move_word = "upward" if direction == "up" else "downward"
-    drivers = [
-        f"price deviation {breakdown.price_deviation:.1f}x",
-        f"volume expansion {breakdown.volume_expansion:.1f}x",
-        f"volatility breakout {breakdown.volatility_breakout:.1f}x",
-        f"short-term move {breakdown.short_move:.1f}x",
-    ]
-    return (
-        f"{symbol} shows an unusual {move_word} move. "
-        f"Combined anomaly score is {score:.2f}, driven by " + ", ".join(drivers) + "."
-    )
+    move_word = "yukarı" if direction == "up" else "aşağı"
+    drivers: list[str] = []
+    if breakdown.price_deviation >= 2.5:
+        drivers.append("fiyat normalinden ayrıştı")
+    if breakdown.volume_expansion >= 2:
+        drivers.append("hacim arttı")
+    if breakdown.volatility_breakout >= 2:
+        drivers.append("oynaklık yükseldi")
+    if breakdown.short_move >= 2:
+        drivers.append("kısa vadeli hareket hızlandı")
+    if not drivers:
+        drivers.append("birkaç sinyal aynı anda güçlendi")
+
+    reason = ", ".join(drivers)
+    return f"{symbol} için olağan dışı {move_word} hareket sinyali var. Özet: {reason}. Skor {score:.2f}."
 
 
 def _prepare_candles(candles: pd.DataFrame) -> pd.DataFrame:
@@ -126,12 +133,16 @@ def _prepare_candles(candles: pd.DataFrame) -> pd.DataFrame:
     return frame[["open", "high", "low", "close", "volume"]].dropna()
 
 
-def _dedupe_adjacent_alerts(alerts: list[Alert]) -> list[Alert]:
-    deduped: list[Alert] = []
-    for alert in alerts:
-        if deduped and alert.direction == deduped[-1].direction:
-            if alert.score > deduped[-1].score:
-                deduped[-1] = alert
+def _dedupe_adjacent_alerts(alerts: list[tuple[int, Alert]], *, max_bar_gap: int) -> list[Alert]:
+    deduped: list[tuple[int, Alert]] = []
+    for bar_index, alert in alerts:
+        if (
+            deduped
+            and alert.direction == deduped[-1][1].direction
+            and bar_index - deduped[-1][0] <= max_bar_gap
+        ):
+            if alert.score > deduped[-1][1].score:
+                deduped[-1] = (bar_index, alert)
             continue
-        deduped.append(alert)
-    return deduped
+        deduped.append((bar_index, alert))
+    return [alert for _, alert in deduped]

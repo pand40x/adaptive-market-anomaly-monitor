@@ -38,11 +38,13 @@ def _store() -> MarketStore:
 def _parameters_for(store: MarketStore, symbol: str, market_class):
     class_calibration = store.load_class_calibration(market_class)
     if class_calibration is not None:
-        return class_calibration
+        thresholds, weights = class_calibration
+        return thresholds, _weights_for_market(market_class, weights)
     optimized = store.load_optimization(symbol)
     if optimized is not None:
-        return optimized
-    return DEFAULT_THRESHOLDS[market_class], DEFAULT_WEIGHTS[market_class]
+        thresholds, weights = optimized
+        return thresholds, _weights_for_market(market_class, weights)
+    return DEFAULT_THRESHOLDS[market_class], _weights_for_market(market_class, DEFAULT_WEIGHTS[market_class])
 
 
 @app.command()
@@ -83,7 +85,7 @@ def scan() -> None:
             store.save_alerts(alerts[-20:])
             active_anomalies.extend(
                 evaluate_active_anomaly(candles=candles, alert=alert, thresholds=thresholds)
-                for alert in alerts[-20:]
+                for alert in alerts[-1:]
             )
             latest_alerts.extend(alerts[-1:])
             latest = alerts[-1].explanation if alerts else "-"
@@ -137,9 +139,9 @@ def optimize(years: int = typer.Option(3, min=1, max=5)) -> None:
     """Optimize thresholds and weights per asset class, then save best settings."""
     store = _store()
     table = Table("Symbol", "Class", "Score", "Precision", "Noise", "Alerts", "React", "Objective")
-    threshold_grid, weight_grid = _calibration_grid()
     try:
         for asset in DEFAULT_ASSETS:
+            threshold_grid, weight_grid = _calibration_grid(asset.market_class)
             candles = fetch_history(asset, years=years)
             store.save_candles(asset.symbol, asset.market_class, candles)
             result = optimize_parameters(
@@ -171,13 +173,13 @@ def optimize(years: int = typer.Option(3, min=1, max=5)) -> None:
 def calibrate_classes(years: int = typer.Option(3, min=1, max=5)) -> None:
     """Calibrate one shared parameter set per market class and save it to MongoDB."""
     store = _store()
-    threshold_grid, weight_grid = _calibration_grid()
     table = Table("Class", "Assets", "Score", "Follow", "Alerts", "Precision", "Noise", "React", "Objective")
     try:
         for market_class in MarketClass:
             assets = [asset for asset in DEFAULT_ASSETS if asset.market_class is market_class]
             if not assets:
                 continue
+            threshold_grid, weight_grid = _calibration_grid(market_class)
             histories = {}
             for asset in assets:
                 candles = fetch_history(asset, years=years)
@@ -286,12 +288,15 @@ def telegram_chat_ids() -> None:
 
 
 @app.command("active-anomalies")
-def active_anomalies(status: str | None = typer.Option(None, help="Filter by pending, confirmed, or expired.")) -> None:
+def active_anomalies(
+    status: str = typer.Option("pending", help="Use pending, confirmed, expired, or all."),
+) -> None:
     """Show active anomaly follow-up status from MongoDB."""
     store = _store()
-    table = Table("Asset", "Symbol", "Class", "Status", "Direction", "Score", "Progress", "Max move", "Condition")
+    normalized_status = None if status.lower() == "all" else status.lower()
+    table = Table("Asset", "Symbol", "Class", "Status", "Direction", "Score", "Progress", "Max move", "Target")
     try:
-        for anomaly in store.load_active_anomalies(status=status, limit=100):
+        for anomaly in store.load_active_anomalies(status=normalized_status, limit=100):
             table.add_row(
                 anomaly.asset_name or display_name_for(anomaly.symbol),
                 anomaly.symbol,
@@ -301,7 +306,7 @@ def active_anomalies(status: str | None = typer.Option(None, help="Filter by pen
                 f"{anomaly.score:.2f}/{anomaly.threshold_score:.1f}",
                 f"{anomaly.observed_bars}/{anomaly.lookahead_bars} bar",
                 f"{anomaly.max_move_pct:.2f}%",
-                f"{anomaly.follow_through_pct:.1f}% follow-through",
+                f"{anomaly.follow_through_pct:.1f}% hareket",
             )
         console.print(table)
     finally:
@@ -342,23 +347,80 @@ def evaluate_alerts() -> None:
         store.close()
 
 
-def _calibration_grid() -> tuple[list[Thresholds], list[SignalWeights]]:
-    threshold_grid = [
-        Thresholds(score=1.8, follow_through_pct=1.0, lookahead_bars=5),
-        Thresholds(score=2.1, follow_through_pct=1.5, lookahead_bars=5),
-        Thresholds(score=2.4, follow_through_pct=2.0, lookahead_bars=8),
-        Thresholds(score=2.8, follow_through_pct=2.5, lookahead_bars=8),
-        Thresholds(score=3.2, follow_through_pct=3.0, lookahead_bars=10),
-        Thresholds(score=3.6, follow_through_pct=3.0, lookahead_bars=10),
-        Thresholds(score=4.0, follow_through_pct=3.0, lookahead_bars=12),
-        Thresholds(score=4.4, follow_through_pct=4.0, lookahead_bars=12),
-    ]
-    weight_grid = [
-        SignalWeights(price=0.35, volume=0.25, volatility=0.2, short_move=0.2),
-        SignalWeights(price=0.45, volume=0.2, volatility=0.2, short_move=0.15),
-        SignalWeights(price=0.3, volume=0.2, volatility=0.3, short_move=0.2),
+def _weights_for_market(market_class: MarketClass, weights: SignalWeights) -> SignalWeights:
+    if market_class is MarketClass.FOREX:
+        return SignalWeights(
+            price=weights.price,
+            volume=0.0,
+            volatility=weights.volatility,
+            short_move=weights.short_move,
+        )
+    return weights
+
+
+def _calibration_grid(market_class: MarketClass) -> tuple[list[Thresholds], list[SignalWeights]]:
+    thresholds_by_class = {
+        MarketClass.CRYPTO: [
+            Thresholds(score=2.2, follow_through_pct=2.0, lookahead_bars=8),
+            Thresholds(score=2.6, follow_through_pct=2.5, lookahead_bars=12),
+            Thresholds(score=3.0, follow_through_pct=3.0, lookahead_bars=12),
+            Thresholds(score=3.6, follow_through_pct=4.0, lookahead_bars=24),
+            Thresholds(score=4.0, follow_through_pct=4.0, lookahead_bars=24),
+            Thresholds(score=4.4, follow_through_pct=4.0, lookahead_bars=24),
+            Thresholds(score=4.8, follow_through_pct=4.0, lookahead_bars=24),
+            Thresholds(score=5.0, follow_through_pct=4.0, lookahead_bars=24),
+        ],
+        MarketClass.STOCK: [
+            Thresholds(score=2.2, follow_through_pct=2.5, lookahead_bars=5),
+            Thresholds(score=2.6, follow_through_pct=3.0, lookahead_bars=5),
+            Thresholds(score=3.0, follow_through_pct=4.0, lookahead_bars=10),
+            Thresholds(score=3.4, follow_through_pct=5.0, lookahead_bars=10),
+        ],
+        MarketClass.INDEX: [
+            Thresholds(score=1.8, follow_through_pct=1.0, lookahead_bars=5),
+            Thresholds(score=2.1, follow_through_pct=1.5, lookahead_bars=5),
+            Thresholds(score=2.5, follow_through_pct=2.0, lookahead_bars=10),
+            Thresholds(score=2.9, follow_through_pct=2.5, lookahead_bars=10),
+        ],
+        MarketClass.FOREX: [
+            Thresholds(score=1.8, follow_through_pct=0.5, lookahead_bars=5),
+            Thresholds(score=2.1, follow_through_pct=0.8, lookahead_bars=5),
+            Thresholds(score=2.5, follow_through_pct=1.0, lookahead_bars=10),
+            Thresholds(score=2.9, follow_through_pct=1.2, lookahead_bars=10),
+        ],
+        MarketClass.COMMODITY: [
+            Thresholds(score=2.0, follow_through_pct=1.2, lookahead_bars=5),
+            Thresholds(score=2.4, follow_through_pct=1.8, lookahead_bars=5),
+            Thresholds(score=2.8, follow_through_pct=2.5, lookahead_bars=10),
+            Thresholds(score=3.2, follow_through_pct=3.0, lookahead_bars=10),
+        ],
+        MarketClass.BIST: [
+            Thresholds(score=2.4, follow_through_pct=3.0, lookahead_bars=5),
+            Thresholds(score=2.8, follow_through_pct=4.0, lookahead_bars=5),
+            Thresholds(score=3.2, follow_through_pct=5.0, lookahead_bars=10),
+            Thresholds(score=3.6, follow_through_pct=7.0, lookahead_bars=10),
+        ],
+    }
+    weights_by_class = {
+        MarketClass.FOREX: [
+            SignalWeights(price=0.50, volume=0.0, volatility=0.25, short_move=0.25),
+            SignalWeights(price=0.40, volume=0.0, volatility=0.35, short_move=0.25),
+            SignalWeights(price=0.35, volume=0.0, volatility=0.25, short_move=0.40),
+        ],
+        MarketClass.INDEX: [
+            SignalWeights(price=0.50, volume=0.05, volatility=0.25, short_move=0.20),
+            SignalWeights(price=0.40, volume=0.05, volatility=0.35, short_move=0.20),
+            SignalWeights(price=0.45, volume=0.0, volatility=0.30, short_move=0.25),
+        ],
+    }
+    default_weights = [
+        SignalWeights(price=0.35, volume=0.25, volatility=0.20, short_move=0.20),
+        SignalWeights(price=0.45, volume=0.20, volatility=0.20, short_move=0.15),
+        SignalWeights(price=0.30, volume=0.20, volatility=0.30, short_move=0.20),
         SignalWeights(price=0.45, volume=0.25, volatility=0.15, short_move=0.15),
     ]
+    threshold_grid = thresholds_by_class[market_class]
+    weight_grid = weights_by_class.get(market_class, default_weights)
     return threshold_grid, weight_grid
 
 

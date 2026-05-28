@@ -69,3 +69,25 @@ def test_active_anomaly_confirms_when_follow_through_happens() -> None:
 
     assert active.status == "confirmed"
     assert active.max_move_pct >= 5
+
+
+def test_active_anomaly_can_be_checked_without_historical_expired_records() -> None:
+    index = pd.date_range("2026-01-01", periods=3, freq="1D", tz="UTC")
+    candles = pd.DataFrame(
+        {
+            "open": [100, 101, 102],
+            "high": [101, 102, 103],
+            "low": [99, 100, 101],
+            "close": [100, 101, 102],
+            "volume": [1000, 1000, 1000],
+        },
+        index=index,
+    )
+
+    active = evaluate_active_anomaly(
+        candles=candles,
+        alert=_alert(index[-1]),
+        thresholds=Thresholds(score=3.0, follow_through_pct=5.0, lookahead_bars=5),
+    )
+
+    assert active.status == "pending"

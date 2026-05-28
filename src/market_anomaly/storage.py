@@ -124,6 +124,7 @@ class MarketStore:
 
     def save_active_anomalies(self, active_anomalies: list[ActiveAnomaly]) -> None:
         collection = self.db["active_anomalies"]
+        collection.delete_many({})
         for anomaly in active_anomalies:
             timestamp = _to_datetime(anomaly.timestamp)
             collection.update_one(

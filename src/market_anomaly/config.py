@@ -29,7 +29,7 @@ DEFAULT_WEIGHTS = {
     MarketClass.CRYPTO: SignalWeights(price=0.35, volume=0.25, volatility=0.2, short_move=0.2),
     MarketClass.STOCK: SignalWeights(price=0.4, volume=0.2, volatility=0.2, short_move=0.2),
     MarketClass.INDEX: SignalWeights(price=0.45, volume=0.1, volatility=0.25, short_move=0.2),
-    MarketClass.FOREX: SignalWeights(price=0.45, volume=0.05, volatility=0.25, short_move=0.25),
+    MarketClass.FOREX: SignalWeights(price=0.50, volume=0.0, volatility=0.25, short_move=0.25),
     MarketClass.COMMODITY: SignalWeights(price=0.4, volume=0.15, volatility=0.25, short_move=0.2),
     MarketClass.BIST: SignalWeights(price=0.42, volume=0.22, volatility=0.18, short_move=0.18),
 }

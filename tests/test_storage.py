@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime, timezone
 
 import pymongo
 
-from market_anomaly.models import ClassCalibrationResult, MarketClass, OptimizationResult, SignalWeights, Thresholds
+from market_anomaly.models import (
+    ActiveAnomaly,
+    ClassCalibrationResult,
+    MarketClass,
+    OptimizationResult,
+    SignalWeights,
+    Thresholds,
+)
 from market_anomaly.storage import MarketStore
 
 
@@ -49,6 +57,9 @@ class FakeCollection:
             if all(item.get(key) == value for key, value in selector.items())
         ]
         return FakeCursor(matches)
+
+    def delete_many(self, _selector: dict[str, object]) -> None:
+        self.documents.clear()
 
 
 class FakeCursor:
@@ -125,3 +136,67 @@ def test_store_loads_saved_class_calibration(tmp_path) -> None:
     thresholds, weights = loaded
     assert thresholds.score == 2.5
     assert weights.volume == 0.25
+
+
+def test_store_filters_active_anomalies_by_status(tmp_path) -> None:
+    store = MarketStore(client=FakeClient(), db_name="test")
+    pending = ActiveAnomaly(
+        symbol="BTCUSDT",
+        market_class=MarketClass.CRYPTO,
+        timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        direction="up",
+        status="pending",
+        score=3.1,
+        threshold_score=2.4,
+        follow_through_pct=2.0,
+        lookahead_bars=8,
+        observed_bars=2,
+        max_move_pct=1.2,
+        explanation="pending",
+    )
+    confirmed = pending.model_copy(
+        update={
+            "symbol": "ETHUSDT",
+            "timestamp": datetime(2026, 1, 2, tzinfo=timezone.utc),
+            "status": "confirmed",
+        }
+    )
+
+    store.save_active_anomalies([pending, confirmed])
+    loaded = store.load_active_anomalies(status="pending")
+    store.close()
+
+    assert [anomaly.symbol for anomaly in loaded] == ["BTCUSDT"]
+
+
+def test_saving_active_anomalies_replaces_stale_followups(tmp_path) -> None:
+    store = MarketStore(client=FakeClient(), db_name="test")
+    stale = ActiveAnomaly(
+        symbol="BTCUSDT",
+        market_class=MarketClass.CRYPTO,
+        timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        direction="up",
+        status="expired",
+        score=3.1,
+        threshold_score=2.4,
+        follow_through_pct=2.0,
+        lookahead_bars=8,
+        observed_bars=8,
+        max_move_pct=0.4,
+        explanation="stale",
+    )
+    current = stale.model_copy(
+        update={
+            "symbol": "ETHUSDT",
+            "timestamp": datetime(2026, 1, 2, tzinfo=timezone.utc),
+            "status": "pending",
+            "explanation": "current",
+        }
+    )
+
+    store.save_active_anomalies([stale])
+    store.save_active_anomalies([current])
+    loaded = store.load_active_anomalies(status=None)
+    store.close()
+
+    assert [anomaly.symbol for anomaly in loaded] == ["ETHUSDT"]
