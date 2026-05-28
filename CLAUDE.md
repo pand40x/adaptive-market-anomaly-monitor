@@ -78,6 +78,10 @@ User said the Markdown table was too narrow. Generated `anomaly_alerts_report.ht
 
 Added human-readable asset names so coded Yahoo/Binance symbols render as labels such as Gold Futures, EUR/USD, S&P 500, Bitcoin / Tether, and Turkish Airlines. Added BIST as its own market class with THYAO.IS, ASELS.IS, BIMAS.IS, and TUPRS.IS. Added natural market-time logic: crypto is always active, daily Yahoo bars are weekday-filtered, BIST uses Istanbul session hours for intraday data, US stocks/indexes use New York regular hours, forex follows weekday FX availability, and commodity futures use a near-24h futures session. Added active anomaly tracking with pending/confirmed/expired status after alerts. Re-ran 3-year calibration with BIST: BIST selected score 3.2 / follow-through 3.0%, 10 historical alerts, 80% precision, 20% noise, average reaction 2.62 bars. Mongo now has 59,354 candles, 6 class calibrations, 55 alerts, 55 active anomalies, and 45 alert evaluations.
 
+### 2026-05-28 18. GitHub and Dokploy Deployment
+
+Initialized git, created/pushed GitHub repo `pand40x/adaptive-market-anomaly-monitor`, and made it public so Dokploy can build from the GitHub context. Created a Dokploy raw Docker Compose service in the existing `anomaly-detector` production environment. Initial deploy failed because the compose source type was missing; updating the compose to `sourceType=raw` fixed it. Final Dokploy deployment status is `done`, compose status is `done`, and both `market-watch` and `mongo` containers are running. Do not print Dokploy API responses that include raw compose content because they may include environment secrets.
+
 ### 2026-05-28 11. Secret Handling and Telegram Alerts
 
 User provided Dokploy and Telegram credentials in chat. Do not repeat or store the raw secret values in memory. Added Telegram notifier support through `.env.local` variables, including `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DOKPLOY_API_KEY`, and optional `DOKPLOY_API_URL`. Scan now sends a short Telegram summary when both token and chat id are configured. Added a `telegram-chat-ids` helper command for discovering chat ids after the user messages the bot.
