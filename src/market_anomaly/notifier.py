@@ -34,17 +34,15 @@ def format_alerts_for_telegram(alerts: list[Alert], limit: int = 8) -> str:
     shown = alerts[-limit:]
     lines = ["<b>Anomali Uyarıları</b>"]
     for alert in shown:
-        direction = "Yukarı" if alert.direction == "up" else "Aşağı"
         asset_name = html.escape(alert.asset_name or display_name_for(alert.symbol))
         symbol = html.escape(alert.symbol)
         market = html.escape(market_label_for(alert.market_class))
-        reason = html.escape(_plain_reason(alert))
+        direction = "yükseliş" if alert.direction == "up" else "düşüş"
+        summary = html.escape(_plain_summary(alert))
         lines.append(
             f"<b>{asset_name}</b> <code>{symbol}</code>\n"
-            f"Piyasa: {market}\n"
-            f"Yön: {direction}\n"
-            f"Neden: {reason}\n"
-            f"Takip: Sonraki hareket izleniyor."
+            f"{market} piyasasında olağan dışı {direction} sinyali.\n"
+            f"{summary}. Hareketin devamı izleniyor."
         )
     if len(alerts) > limit:
         lines.append(f"{len(alerts) - limit} eski alarm gizlendi.")
@@ -52,21 +50,23 @@ def format_alerts_for_telegram(alerts: list[Alert], limit: int = 8) -> str:
     return message[:4000]
 
 
-def _plain_reason(alert: Alert) -> str:
-    parts = []
-    if alert.breakdown.price_deviation >= 3:
-        parts.append("fiyat normalden belirgin saptı")
-    if alert.breakdown.volume_expansion >= 2:
-        parts.append("hacim olağanın üstüne çıktı")
-    if alert.breakdown.short_move >= 2:
-        parts.append("kısa vadeli hareket güçlendi")
-    if alert.breakdown.volatility_breakout >= 2:
-        parts.append("oynaklık arttı")
-    if not parts:
-        return "birkaç sinyal birlikte olağan dışı göründü"
-    if len(parts) == 1:
-        return parts[0]
-    return ", ".join(parts[:-1]) + " ve " + parts[-1]
+def _plain_summary(alert: Alert) -> str:
+    price = alert.breakdown.price_deviation >= 3
+    volume = alert.breakdown.volume_expansion >= 2
+    volatility = alert.breakdown.volatility_breakout >= 2
+    short_move = alert.breakdown.short_move >= 2
+
+    if price and volume and (short_move or volatility):
+        return "Fiyat ve hacim birlikte hızlandı"
+    if price and volume:
+        return "Fiyat hareketi hacimle desteklendi"
+    if short_move and volatility:
+        return "Kısa vadeli hareket güç kazandı"
+    if price:
+        return "Fiyat normal davranışından belirgin ayrıştı"
+    if volume:
+        return "Hacim olağanın üstüne çıktı"
+    return "Birden fazla sinyal aynı anda güçlendi"
 
 
 class TelegramNotifier:

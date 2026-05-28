@@ -31,9 +31,12 @@ def test_format_alerts_for_telegram_is_short_clear_and_secret_free() -> None:
     assert "<b>Anomali Uyarıları</b>" in message
     assert "Bitcoin / Tether" in message
     assert "BTCUSDT" in message
-    assert "Yön: Yukarı" in message
-    assert "Neden:" in message
-    assert "Takip:" in message
+    assert "olağan dışı yükseliş" in message
+    assert "Fiyat ve hacim birlikte hızlandı" in message
+    assert "Hareketin devamı izleniyor" in message
+    assert "Yön:" not in message
+    assert "Neden:" not in message
+    assert "Takip:" not in message
     assert "price deviation" not in message.lower()
     assert "volatility breakout" not in message.lower()
     assert "100000" not in message
